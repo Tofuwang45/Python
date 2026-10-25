@@ -28,7 +28,7 @@ Run everything from the repo root through `uv`. `.python-version` pins free-thre
 ```bash
 uv sync --group=test                           # once; add --group=cv for opencv files
 uv run pytest strings/palindrome.py            # one file: doctests run via pyproject addopts
-uv run pytest graphs/                          # one topic
+MPLBACKEND=Agg uv run pytest graphs/           # one topic
 uvx ruff check . && uvx ruff format --check .  # same as CI ruff job
 ./scripts/validate_filenames.py                # lowercase, no spaces/dashes, inside a dir
 uvx pre-commit run --all-files                 # everything CI and pre-commit.ci run
@@ -39,7 +39,7 @@ Full suite, the way CI runs it (`build.yml`). Bare `uv run pytest` also collects
 image-processing and network files that CI skips:
 
 ```bash
-uv run pytest --ignore=computer_vision/flip_augmentation.py \
+MPLBACKEND=Agg uv run pytest --ignore=computer_vision/flip_augmentation.py \
   --ignore=computer_vision/harris_corner.py --ignore=computer_vision/mosaic_augmentation.py \
   --ignore=data_compression/peak_signal_to_noise_ratio.py --ignore=digital_image_processing/ \
   --ignore=docs/conf.py --ignore=project_euler/ --ignore=scripts/validate_solutions.py \
@@ -47,8 +47,12 @@ uv run pytest --ignore=computer_vision/flip_augmentation.py \
   --ignore=web_programming/fetch_anime_and_play.py .
 ```
 
-It takes about 70s locally. On a clean checkout, two tests fail on macOS and are not yours to
-fix: `machine_learning/linear_discriminant_analysis.py::...gaussian_distribution` (seeded
+Keep the `MPLBACKEND=Agg` prefix on any multi-file run. Without it, doctests that call
+`plt.show()` (e.g. `audio_filters/show_response.py`) open macOS windows and block until
+they close, so the suite takes 70–90s instead of about 20s.
+
+On a clean checkout, two tests fail on macOS and are not yours to fix:
+`machine_learning/linear_discriminant_analysis.py::...gaussian_distribution` (seeded
 `random` output) and `web_programming/instagram_crawler.py` (live network). `ty`
 (`uv run --with ty ty check`) is advisory: CI runs it with `--exit-zero`.
 
